@@ -23,8 +23,6 @@ END_MESSAGE_MAP()
 
 CMoveWinApp::CMoveWinApp()
 {
-	// TODO: add construction code here,
-	// Place all significant initialization in InitInstance
 }
 
 

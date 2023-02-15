@@ -53,6 +53,8 @@ BEGIN_MESSAGE_MAP(CMoveWinDlg, CDialogEx)
 	ON_BN_CLICKED(IDCANCEL, &CMoveWinDlg::OnBnClickedCancel)
 	ON_EN_CHANGE(IDC_TXTSEARCHFILTER, &CMoveWinDlg::textSearchFilter_OnChange)
 	ON_BN_CLICKED(IDC_BUTTONMOVEWINDOW, &CMoveWinDlg::OnBnClickedButtonMoveSelectedWindow)
+	ON_WM_SETFOCUS()
+	ON_WM_ACTIVATE()
 END_MESSAGE_MAP()
 
 
@@ -67,7 +69,7 @@ BOOL CMoveWinDlg::OnInitDialog()
 	// IDM_ABOUTBOX must be in the system command range.
 	ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
 	ASSERT(IDM_ABOUTBOX < 0xF000);
-
+	
 	CMenu* pSysMenu = GetSystemMenu(FALSE);
 	if (pSysMenu != nullptr)
 	{
@@ -87,10 +89,12 @@ BOOL CMoveWinDlg::OnInitDialog()
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, TRUE);		// Set small icon
 
-	//Extra stuff
 	RefreshAllWindowTitles(NULL);
 	
-	return TRUE;  // return TRUE  unless you set the focus to a control
+	CEdit* txtfilter = (CEdit*)GetDlgItem(IDC_TXTSEARCHFILTER);
+	txtfilter->SetFocus();
+
+	return FALSE;
 }
 
 void CMoveWinDlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -106,15 +110,11 @@ void CMoveWinDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	}
 }
 
-// If you add a minimize button to your dialog, you will need the code below
-//  to draw the icon.  For MFC applications using the document/view model,
-//  this is automatically done for you by the framework.
-
 void CMoveWinDlg::OnPaint()
 {
 	if (IsIconic())
 	{
-		CPaintDC dc(this); // device context for painting
+		CPaintDC dc(this); 
 
 		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
 
@@ -135,25 +135,22 @@ void CMoveWinDlg::OnPaint()
 	}
 }
 
-// The system calls this function to obtain the cursor to display while the user drags
-//  the minimized window.
 HCURSOR CMoveWinDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-
 void CMoveWinDlg::RefreshAllWindowTitles(const TCHAR* strFilter)
 {
-	CListBox* lstWindows = static_cast<CListBox*>(GetDlgItem(IDC_WINDOWTITLELIST));
-	mWindowHWNDs = WindowHWND::getHWNDS();
-	lstWindows->ResetContent();
-	for (std::vector<WindowHWND>::const_iterator i = mWindowHWNDs.begin(); i != mWindowHWNDs.end(); i++) {
+	CListBox* lstWindowHWNDS = static_cast<CListBox*>(GetDlgItem(IDC_WINDOWTITLELIST));
+	pWindowHWNDs = WindowHWND::getHWNDS();
+	lstWindowHWNDS->ResetContent();
+	for (std::vector<WindowHWND>::const_iterator i = pWindowHWNDs.get()->begin(); i != pWindowHWNDs.get()->end(); i++) {
 		if (strFilter != NULL) {
 			if ((*i).getTitle().find(strFilter) == std::wstring::npos)
 				continue;
 		}
-		lstWindows->AddString((*i).getTitle().c_str());
+		lstWindowHWNDS->AddString((*i).getTitle().c_str());
 	}
 }
 
@@ -175,7 +172,8 @@ void CMoveWinDlg::textSearchFilter_OnChange()
 	std::unique_ptr<TCHAR> strSearchFilter(new TCHAR[100 + 2]);
 	int strSearchFilterLength = txtSearchFilter->GetWindowText(strSearchFilter.get(), 100 + 1);
 	RefreshAllWindowTitles(strSearchFilterLength > 0 ? strSearchFilter.get() : NULL);
-	//CListBox* lstWindows = static_cast<CListBox*>(GetDlgItem(IDC_WINDOWTITLELIST));
+	CListBox* lstWindows = static_cast<CListBox*>(GetDlgItem(IDC_WINDOWTITLELIST));
+	
 }
 
 
@@ -191,7 +189,7 @@ void CMoveWinDlg::OnBnClickedButtonMoveSelectedWindow()
 		const int selectedTextLength = lstWindows->GetTextLen(selectedIndex);
 		selectedText.reset(new TCHAR[selectedTextLength + 2]);
 		lstWindows->GetText(selectedIndex, selectedText.get());
-		for (std::vector<WindowHWND>::iterator i = mWindowHWNDs.begin(); i != mWindowHWNDs.end(); i++) {
+		for (std::vector<WindowHWND>::iterator i = pWindowHWNDs.get()->begin(); i != pWindowHWNDs.get()->end(); i++) {
 			if (i->getTitle() == reinterpret_cast<const wchar_t*>(selectedText.get())) {
 				if (!selectedLocation) {
 					CSelectPositionDlg dlg;
@@ -207,3 +205,25 @@ void CMoveWinDlg::OnBnClickedButtonMoveSelectedWindow()
 		}
 	}
 }
+
+
+void CMoveWinDlg::OnSetFocus(CWnd* pOldWnd)
+{
+	CDialogEx::OnSetFocus(pOldWnd);
+}
+
+
+void CMoveWinDlg::OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized)
+{
+	CDialogEx::OnActivate(nState, pWndOther, bMinimized);
+
+	static bool alreadyFocusedOnSearch = false;
+	if (!alreadyFocusedOnSearch)
+	{
+		CEdit* txtfilter = (CEdit*)this->GetDlgItem(IDC_TXTSEARCHFILTER);
+		txtfilter->SetFocus();
+		Invalidate();
+		alreadyFocusedOnSearch = true;
+	}
+}
+

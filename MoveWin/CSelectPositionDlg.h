@@ -1,5 +1,14 @@
 #pragma once
 
+typedef struct DimensionSummation
+{
+    int minimumTop;
+    int maximumBottom;
+    int totalWidth;
+    int leftmostPosition;
+    RECT summation;
+}DimensionSummation;
+
 class CSelectPositionDlg :
     public CDialogEx
 {
@@ -18,6 +27,8 @@ protected:
 public:
     int mSelectedX;
     int mSelectedY;
+private:
+    DimensionSummation mMonitorDimensions;
 public:
     afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
     afx_msg void OnLButtonDown(UINT nFlags, CPoint point);

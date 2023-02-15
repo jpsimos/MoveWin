@@ -28,21 +28,51 @@ void CSelectPositionDlg::DoDataExchange(CDataExchange* pDX)
 	return CDialogEx::DoDataExchange(pDX);
 }
 
+BOOL Grab(HMONITOR monitor, HDC hdc, LPRECT rect, LPARAM arg)
+{
+	BOOL happy;
+	DimensionSummation* dimensions = (DimensionSummation*)arg;
+
+	if ((happy = (NULL != dimensions && NULL != rect)))
+	{
+
+		if (rect->left < dimensions->leftmostPosition)
+			dimensions->leftmostPosition = rect->left;
+
+		if (rect->bottom > dimensions->maximumBottom)
+			dimensions->maximumBottom = rect->bottom;
+
+		if (rect->top < dimensions->minimumTop)
+			dimensions->minimumTop = rect->top;
+
+		dimensions->totalWidth += (rect->right - rect->left);
+
+		dimensions->summation.top += rect->top;
+		dimensions->summation.left += rect->left;
+		dimensions->summation.bottom += rect->bottom;
+		dimensions->summation.right += rect->right;
+	}
+	return happy;
+}
+
 BOOL CSelectPositionDlg::OnInitDialog()
 {
+	
 	BOOL result;
 	CRect rect;
+
 	if ((result = CDialogEx::OnInitDialog())) {
-		SetParent(GetDesktopWindow());
-		//GetDesktopWindow()->GetWindowRect(&rect);
-		rect.right = GetSystemMetrics(SM_CXMAXTRACK);
-		rect.left = 0;
-		rect.bottom = GetSystemMetrics(SM_CYMAXTRACK);
-		rect.top = 0;
-		SetWindowPos(&wndTopMost, rect.left, rect.top, rect.right, rect.bottom, SWP_SHOWWINDOW);
-		SetWindowLong(GetSafeHwnd(), GWL_EXSTYLE, GetWindowLong(GetSafeHwnd(), GWL_EXSTYLE) | WS_EX_LAYERED);
-		//SetBackgroundColor(RGB(1, 11, 21));
-		::SetLayeredWindowAttributes(GetSafeHwnd(), RGB(255, 255, 255), 0x7F, LWA_COLORKEY | LWA_ALPHA);
+
+		ZeroMemory(&mMonitorDimensions, sizeof(mMonitorDimensions));
+
+		if (TRUE == EnumDisplayMonitors(NULL, NULL, (MONITORENUMPROC)Grab, (LPARAM)&mMonitorDimensions))
+		{
+			SetWindowPos(GetParent(), mMonitorDimensions.leftmostPosition, mMonitorDimensions.minimumTop, 
+				mMonitorDimensions.totalWidth, mMonitorDimensions.maximumBottom, SWP_SHOWWINDOW);
+			SetWindowLong(GetSafeHwnd(), GWL_EXSTYLE, GetWindowLong(GetSafeHwnd(), GWL_EXSTYLE) | WS_EX_LAYERED);
+			::SetLayeredWindowAttributes(GetSafeHwnd(), RGB(255, 255, 255), 0x7F, LWA_COLORKEY | LWA_ALPHA);
+		}
+
 	}
 	return result;
 }
@@ -56,8 +86,7 @@ BOOL CSelectPositionDlg::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 
 void CSelectPositionDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
-	//CDialogEx::OnLButtonDown(nFlags, point);
-	mSelectedX = point.x + 5;
-	mSelectedY = point.y + 5;
+	mSelectedX = mMonitorDimensions.leftmostPosition + point.x + 5;
+	mSelectedY = mMonitorDimensions.maximumBottom - (mMonitorDimensions.maximumBottom - point.y) + 5;
 	CDialogEx::OnOK();
 }

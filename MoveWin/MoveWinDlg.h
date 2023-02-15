@@ -44,7 +44,7 @@ protected:
 
 // Member Variables
 private:
-	std::vector<WindowHWND> mWindowHWNDs;
+	std::shared_ptr<std::vector<WindowHWND>> pWindowHWNDs;
 	
 // Implementation
 protected:
@@ -63,4 +63,11 @@ public:
 	afx_msg void OnBnClickedCancel();
 	afx_msg void textSearchFilter_OnChange();
 	afx_msg void OnBnClickedButtonMoveSelectedWindow();
+	afx_msg void OnSetFocus(CWnd* pOldWnd);
+
+private:
+	bool focusedOnSearch;
+public:
+	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
+	afx_msg UINT OnQueryUIState();
 };
